@@ -12,7 +12,7 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
+
 import java.util.*;
 import java.util.List;
 
@@ -806,6 +806,51 @@ public class MainUI {
                     fuzzRequestItemTableModel.addRow(new Object[]{fuzzRequestItem.getParam(), fuzzRequestItem.getPayload(), fuzzRequestItem.getResponseLengthChange(), fuzzRequestItem.getResponseCode()});
                 }
                 fuzzRequestItemTable.updateUI();
+            }
+        });
+        // 表格按键上下移
+        originRequestItemTable.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                // 检查是否按下的是上键或下键
+                if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN) {
+                    // 获取当前选中的行
+                    int selectedRow = originRequestItemTable.getSelectedRow();
+                    if (selectedRow != -1) { // 确保有选中行
+                        // 获取选中行的数据
+                        Integer id = (Integer) originRequestItemTableModel.getValueAt(selectedRow, 0);
+                        String methodText = (String) originRequestItemTableModel.getValueAt(selectedRow, 1);
+                        String hostText = (String) originRequestItemTableModel.getValueAt(selectedRow, 2);
+                        String pathText = (String) originRequestItemTableModel.getValueAt(selectedRow, 3);
+                        OriginRequestItem tempItem = new OriginRequestItem(id, methodText, hostText, pathText, null, null);
+
+                        OriginRequestItem clickedItem = null;
+                        for (Map.Entry<Integer, OriginRequestItem> entry : Data.ORIGIN_REQUEST_TABLE_DATA.entrySet()) {
+                            OriginRequestItem item = entry.getValue();
+                            if (item.equals(tempItem) && item.getId().equals(id)) {
+                                clickedItem = item;
+                                break;
+                            }
+                        }
+
+                        // 更新编辑器内容
+                        requestEditor.setRequest(clickedItem.getOriginRequest());
+                        responseEditor.setResponse(clickedItem.getOriginResponse());
+
+                        // 刷新fuzzRequestItem列表
+                        ArrayList<FuzzRequestItem> fuzzRequestItemArrayList = clickedItem.getFuzzRequestArrayList();
+                        fuzzRequestItemTableModel.setRowCount(0);
+                        for (FuzzRequestItem fuzzRequestItem : fuzzRequestItemArrayList) {
+                            fuzzRequestItemTableModel.addRow(new Object[]{
+                                    fuzzRequestItem.getParam(),
+                                    fuzzRequestItem.getPayload(),
+                                    fuzzRequestItem.getResponseLengthChange(),
+                                    fuzzRequestItem.getResponseCode()
+                            });
+                        }
+                        fuzzRequestItemTable.updateUI();
+                    }
+                }
             }
         });
     }

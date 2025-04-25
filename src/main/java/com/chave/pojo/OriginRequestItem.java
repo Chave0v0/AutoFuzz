@@ -5,6 +5,7 @@ import burp.api.montoya.http.message.responses.HttpResponse;
 import lombok.Data;
 import java.util.ArrayList;
 
+// 修改前的请求
 @Data
 public class OriginRequestItem {
     private Integer id;
