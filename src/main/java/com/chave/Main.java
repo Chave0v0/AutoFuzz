@@ -34,7 +34,7 @@ public class Main implements BurpExtension {
         // banner info
         API.extension().setName("AutoFuzz");
         LOG.logToOutput("AutoFuzz v1.3");
-        LOG.logToOutput("Author: Chave, z-bool");
+        LOG.logToOutput("Author: Chave, z-bool, Y5neKO");
         LOG.logToOutput("Github: https://github.com/Chave0v0/AutoFuzz");
 
         // 初始化ui
