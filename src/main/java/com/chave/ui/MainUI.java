@@ -766,63 +766,62 @@ public class MainUI {
         fuzzRequestItemTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                // 展示原请求响应数据
-                int originRequestItemRow = originRequestItemTable.getSelectedRows()[0];
-                int fuzzRequestItemRow = fuzzRequestItemTable.rowAtPoint(e.getPoint());
-                OriginRequestItem selectedOriginRequestItem = null;
-                Integer id = (Integer) originRequestItemTableModel.getValueAt(originRequestItemRow, 0);
-                String methodText = (String) originRequestItemTableModel.getValueAt(originRequestItemRow, 1);
-                String hostText = (String) originRequestItemTableModel.getValueAt(originRequestItemRow, 2);
-                String pathText = (String) originRequestItemTableModel.getValueAt(originRequestItemRow, 3);
-                OriginRequestItem tempItem = new OriginRequestItem(id, methodText, hostText, pathText, null, null);
-                for (Map.Entry<Integer, OriginRequestItem> entry : Data.ORIGIN_REQUEST_TABLE_DATA.entrySet()) {
-                    OriginRequestItem item = entry.getValue();
+                int row = fuzzRequestItemTable.rowAtPoint(e.getPoint());
+                if (row < 0) return;
+
+                int originRow = originRequestItemTable.getSelectedRow();
+                if (originRow < 0) return;
+
+                Integer id = (Integer) originRequestItemTableModel.getValueAt(originRow, 0);
+                String method = (String) originRequestItemTableModel.getValueAt(originRow, 1);
+                String host = (String) originRequestItemTableModel.getValueAt(originRow, 2);
+                String path = (String) originRequestItemTableModel.getValueAt(originRow, 3);
+                OriginRequestItem tempItem = new OriginRequestItem(id, method, host, path, null, null);
+
+                for (OriginRequestItem item : Data.ORIGIN_REQUEST_TABLE_DATA.values()) {
                     if (item.equals(tempItem) && item.getId().equals(id)) {
-                        selectedOriginRequestItem = item;
+                        FuzzRequestItem fuzzItem = item.getFuzzRequestArrayList().get(row);
+                        requestEditor.setRequest(fuzzItem.getFuzzRequestResponse().request());
+                        responseEditor.setResponse(fuzzItem.getFuzzRequestResponse().response());
                         break;
                     }
                 }
-
-                if (fuzzRequestItemRow >= 0) {
-                    FuzzRequestItem fuzzRequestItem = selectedOriginRequestItem.getFuzzRequestArrayList().get(fuzzRequestItemRow);
-                    requestEditor.setRequest(fuzzRequestItem.getFuzzRequestResponse().request());
-                    responseEditor.setResponse(fuzzRequestItem.getFuzzRequestResponse().response());
-                }
             }
         });
+
 
         // 创建oritinRequestItem被点击时的监听事件  用于展示request response
-        originRequestItemTable.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                // 找到点击的条目
-                int originRequestItemRow = originRequestItemTable.rowAtPoint(e.getPoint());
-                OriginRequestItem clickedItem = null;
-                Integer id = (Integer) originRequestItemTableModel.getValueAt(originRequestItemRow, 0);
-                String methodText = (String) originRequestItemTableModel.getValueAt(originRequestItemRow, 1);
-                String hostText = (String) originRequestItemTableModel.getValueAt(originRequestItemRow, 2);
-                String pathText = (String) originRequestItemTableModel.getValueAt(originRequestItemRow, 3);
+        originRequestItemTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int row = originRequestItemTable.getSelectedRow();
+                if (row < 0) return;
+
+                Integer id = (Integer) originRequestItemTableModel.getValueAt(row, 0);
+                String methodText = (String) originRequestItemTableModel.getValueAt(row, 1);
+                String hostText = (String) originRequestItemTableModel.getValueAt(row, 2);
+                String pathText = (String) originRequestItemTableModel.getValueAt(row, 3);
                 OriginRequestItem tempItem = new OriginRequestItem(id, methodText, hostText, pathText, null, null);
-                for (Map.Entry<Integer, OriginRequestItem> entry : Data.ORIGIN_REQUEST_TABLE_DATA.entrySet()) {
-                    OriginRequestItem item = entry.getValue();
+
+                for (OriginRequestItem item : Data.ORIGIN_REQUEST_TABLE_DATA.values()) {
                     if (item.equals(tempItem) && item.getId().equals(id)) {
-                        clickedItem = item;
+                        requestEditor.setRequest(item.getOriginRequest());
+                        responseEditor.setResponse(item.getOriginResponse());
+
+                        // 刷新fuzz子项
+                        fuzzRequestItemTableModel.setRowCount(0);
+                        for (FuzzRequestItem fuzzItem : item.getFuzzRequestArrayList()) {
+                            fuzzRequestItemTableModel.addRow(new Object[]{
+                                    fuzzItem.getParam(), fuzzItem.getPayload(),
+                                    fuzzItem.getResponseLength(), fuzzItem.getResponseLengthChange(),
+                                    fuzzItem.getResponseCode()
+                            });
+                        }
                         break;
                     }
                 }
-
-                requestEditor.setRequest(clickedItem.getOriginRequest());
-                responseEditor.setResponse(clickedItem.getOriginResponse());
-
-                // 刷新fuzzRequestItem列表
-                ArrayList<FuzzRequestItem> fuzzRequestItemArrayList = clickedItem.getFuzzRequestArrayList();
-                fuzzRequestItemTableModel.setRowCount(0);
-                for (FuzzRequestItem fuzzRequestItem : fuzzRequestItemArrayList) {
-                    fuzzRequestItemTableModel.addRow(new Object[]{fuzzRequestItem.getParam(), fuzzRequestItem.getPayload(), fuzzRequestItem.getResponseLength(), fuzzRequestItem.getResponseLengthChange(), fuzzRequestItem.getResponseCode()});
-                }
-                fuzzRequestItemTable.updateUI();
             }
         });
+
     }
 
     private void showAddDataDialog(String type) {
