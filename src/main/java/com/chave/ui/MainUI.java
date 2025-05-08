@@ -568,6 +568,10 @@ public class MainUI {
                 originRequestItemTableModel.setRowCount(0);
                 fuzzRequestItemTableModel.setRowCount(0);
 
+                // 清空editor
+                requestEditor.setRequest(null);
+                responseEditor.setResponse(null);
+
                 try {
                     Field executorField = AutoFuzzHandler.class.getDeclaredField("executor");
                     executorField.setAccessible(true);
