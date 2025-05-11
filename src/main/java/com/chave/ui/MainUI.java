@@ -825,6 +825,44 @@ public class MainUI {
             }
         });
 
+        // 添加MouseListener（用于重复点击当前选中行也刷新）
+        originRequestItemTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() >= 1) {
+                    int row = originRequestItemTable.rowAtPoint(e.getPoint());
+                    if (row < 0) return;
+
+                    Integer id = (Integer) originRequestItemTableModel.getValueAt(row, 0);
+                    String methodText = (String) originRequestItemTableModel.getValueAt(row, 1);
+                    String hostText = (String) originRequestItemTableModel.getValueAt(row, 2);
+                    String pathText = (String) originRequestItemTableModel.getValueAt(row, 3);
+                    OriginRequestItem tempItem = new OriginRequestItem(id, methodText, hostText, pathText, null, null);
+
+                    for (Map.Entry<Integer, OriginRequestItem> entry : Data.ORIGIN_REQUEST_TABLE_DATA.entrySet()) {
+                        OriginRequestItem item = entry.getValue();
+                        if (item.equals(tempItem) && item.getId().equals(id)) {
+                            requestEditor.setRequest(item.getOriginRequest());
+                            responseEditor.setResponse(item.getOriginResponse());
+
+                            // 刷新 fuzzRequestItemTable
+                            fuzzRequestItemTableModel.setRowCount(0);
+                            for (FuzzRequestItem fuzzRequestItem : item.getFuzzRequestArrayList()) {
+                                fuzzRequestItemTableModel.addRow(new Object[]{
+                                        fuzzRequestItem.getParam(),
+                                        fuzzRequestItem.getPayload(),
+                                        fuzzRequestItem.getResponseLength(),
+                                        fuzzRequestItem.getResponseLengthChange(),
+                                        fuzzRequestItem.getResponseCode()
+                                });
+                            }
+                            fuzzRequestItemTable.updateUI();
+                            break;
+                        }
+                    }
+                }
+            }
+        });
     }
 
     private void showAddDataDialog(String type) {
