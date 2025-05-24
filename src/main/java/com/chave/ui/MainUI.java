@@ -6,28 +6,31 @@ import burp.api.montoya.ui.editor.HttpResponseEditor;
 import com.chave.Main;
 import com.chave.config.UserConfig;
 import com.chave.handler.AutoFuzzHandler;
-import com.chave.pojo.*;
+import com.chave.bean.*;
 import com.chave.utils.Util;
+import com.chave.utils.YamlUtil;
+import lombok.Data;
+
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static com.chave.pojo.Data.*;
+import static com.chave.bean.Data.*;
 
-@lombok.Data
+@Data
 public class MainUI {
     // 创建组件
 
-    private JRadioButton blackButton;
-    private JRadioButton whiteButton;
+    private JRadioButton blackListRadioButton;
+    private JRadioButton whiteListRadioButton;
     private ButtonGroup blackOrWhiteGroup;
 
     private JPanel leftPanel;
@@ -42,6 +45,7 @@ public class MainUI {
     private JPanel basicTitlePanel;
     private JPanel domainTitlePanel;
     private JPanel payloadTitlePanel;
+    private JPanel languageSupportPanel;
     private JPanel cleanRequestListPanel;
     private JPanel payloadMainPanel;
     private JPanel payloadOperatePanel;
@@ -83,10 +87,57 @@ public class MainUI {
     private JLabel authHeaderTitleLabel;
     private JTextField searchTextField;
     private JComboBox<String> searchScopeComboBox;
+    private JComboBox<String> languageSupportComboBox;
     private HttpRequestEditor requestEditor;
     private HttpResponseEditor responseEditor;
     private HashMap<Integer, ArrayList<Integer>> highlightMap;
+    private String[] originRequestItemTableColumnName;
+    private String[] fuzzRequestItemTableColumnName;
 
+    private LinkedHashMap languageSupportMap = new LinkedHashMap();
+
+    // 多语言支持的组件
+    private ArrayList simplifiedChineseLib = new ArrayList<>();
+    private ArrayList englishLib = new ArrayList<>();
+    private ArrayList<String> langSupportComponent = new ArrayList<>();
+    private ResourceBundle bundle;
+
+
+
+    {
+        if (UserConfig.LANGUAGE.equals(Language.SIMPLIFIED_CHINESE)) {
+            bundle = ResourceBundle.getBundle("lang", new Locale("zh", "CN"));
+        } else if (UserConfig.LANGUAGE.equals(Language.ENGLISH)) {
+            bundle = ResourceBundle.getBundle("lang", new Locale("en", "US"));
+        }
+
+        langSupportComponent.add("basicTitleLabel");
+        langSupportComponent.add("turnOnCheckBox");
+        langSupportComponent.add("listenProxyCheckBox");
+        langSupportComponent.add("listenRepeterCheckBox");
+        langSupportComponent.add("cleanRequestItemButton");
+        langSupportComponent.add("domainTitleLabel");
+        langSupportComponent.add("blackListRadioButton");
+        langSupportComponent.add("whiteListRadioButton");
+        langSupportComponent.add("addDomainButton");
+        langSupportComponent.add("editDomainButton");
+        langSupportComponent.add("removeDomainButton");
+        langSupportComponent.add("includeSubDomainCheckBox");
+        langSupportComponent.add("payloadTitleLabel");
+        langSupportComponent.add("addPayloadButton");
+        langSupportComponent.add("editPayloadButton");
+        langSupportComponent.add("removePayloadButton");
+        langSupportComponent.add("appendModCheckBox");
+        langSupportComponent.add("emptyParamCheckBox");
+        langSupportComponent.add("paramURLEncodeCheckBox");
+        langSupportComponent.add("authHeaderTitleLabel");
+        langSupportComponent.add("addAuthHeaderButton");
+        langSupportComponent.add("editAuthHeaderButton");
+        langSupportComponent.add("removeAuthHeaderButton");
+        langSupportComponent.add("unauthCheckBox");
+        langSupportComponent.add("searchButton");
+        langSupportComponent.add("cleanSearchResultButton");
+    }
 
     public MainUI() {
         init();
@@ -94,13 +145,9 @@ public class MainUI {
 
     private void init() {
         // 初始化各个组件
-        blackButton = new JRadioButton("黑名单");
-        whiteButton = new JRadioButton("白名单");
+        blackListRadioButton = new JRadioButton();
+        whiteListRadioButton = new JRadioButton();
         blackOrWhiteGroup = new ButtonGroup();
-        blackOrWhiteGroup.add(blackButton);
-        blackOrWhiteGroup.add(whiteButton);
-        blackButton.setSelected(BLACK_OR_WHITE_CHOOSE);
-
         leftPanel = new JPanel();
         rightPanel = new JPanel();
         rightTopPanel = new JPanel();
@@ -110,6 +157,7 @@ public class MainUI {
         domainMainPanel = new JPanel();
         listenProxyPanel = new JPanel();
         listenRepeterPanel = new JPanel();
+        languageSupportPanel = new JPanel();
         cleanRequestListPanel = new JPanel();
         basicTitlePanel = new JPanel();
         domainTitlePanel = new JPanel();
@@ -121,35 +169,53 @@ public class MainUI {
         authHeaderOperatePanel = new JPanel();
         searchPanel = new JPanel();
         tablePanel = new JPanel();
-        turnOnCheckBox = new JCheckBox("启用插件");
-        listenProxyCheckBox = new JCheckBox("监听Proxy");
-        listenRepeterCheckBox = new JCheckBox("监听Repeter");
-        emptyParamCheckBox = new JCheckBox("参数置空");
-        paramURLEncodeCheckBox = new JCheckBox("URL编码");
-        includeSubDomainCheckBox = new JCheckBox("包含子域名");
-        unauthCheckBox = new JCheckBox("未授权访问");
-        appendModCheckBox = new JCheckBox("追加模式");
-        addDomainButton = new JButton("添加");
-        editDomainButton = new JButton("编辑");
-        removeDomainButton = new JButton("删除");
-        cleanRequestItemButton = new JButton("清空请求记录");
-        addPayloadButton = new JButton("添加");
-        editPayloadButton = new JButton("编辑");
-        removePayloadButton = new JButton("删除");
-        searchButton = new JButton("查找");
-        cleanSearchResultButton = new JButton("清空查找结果");
-        addAuthHeaderButton = new JButton("添加");
-        editAuthHeaderButton = new JButton("编辑");
-        removeAuthHeaderButton = new JButton("删除");
+        turnOnCheckBox = new JCheckBox();
+        listenProxyCheckBox = new JCheckBox();
+        listenRepeterCheckBox = new JCheckBox();
+        emptyParamCheckBox = new JCheckBox();
+        paramURLEncodeCheckBox = new JCheckBox();
+        includeSubDomainCheckBox = new JCheckBox();
+        unauthCheckBox = new JCheckBox();
+        appendModCheckBox = new JCheckBox();
+        addDomainButton = new JButton();
+        editDomainButton = new JButton();
+        removeDomainButton = new JButton();
+        cleanRequestItemButton = new JButton();
+        addPayloadButton = new JButton();
+        editPayloadButton = new JButton();
+        removePayloadButton = new JButton();
+        searchButton = new JButton();
+        cleanSearchResultButton = new JButton();
+        addAuthHeaderButton = new JButton();
+        editAuthHeaderButton = new JButton();
+        removeAuthHeaderButton = new JButton();
         searchTextField = new JTextField();
 
-        basicTitleLabel = new JLabel("-----------------------------基本功能-----------------------------");
-        domainTitleLabel = new JLabel("-----------------------------域名设置-----------------------------");
-        payloadTitleLabel = new JLabel("---------------------------Payload设置---------------------------");
-        authHeaderTitleLabel = new JLabel("-------------------------Auth Header设置-------------------------");
+        // 初始化searchscope下拉框
+        String[] searchScopeOptions = {"request", "response"};
+        searchScopeComboBox = new JComboBox<>(searchScopeOptions);
+        searchScopeComboBox.setSelectedItem("request");
+        UserConfig.SEARCH_SCOPE = SearchScope.REQUEST;
+
+        // 初始化多语言下拉框
+        String[] languageSupportOptions = {"简体中文", "English"};
+        languageSupportComboBox = new JComboBox<>(languageSupportOptions);
+        languageSupportComboBox.setSelectedItem(bundle.getString("language"));
+
+        // 初始化标题栏
+        basicTitleLabel = new JLabel();
+        domainTitleLabel = new JLabel();
+        payloadTitleLabel = new JLabel();
+        authHeaderTitleLabel = new JLabel();
+
+        // 初始化request/response展示框
         requestEditor = Main.API.userInterface().createHttpRequestEditor(EditorOptions.READ_ONLY);
         responseEditor = Main.API.userInterface().createHttpResponseEditor(EditorOptions.READ_ONLY);
+
+        // 用于存放需要高亮的条目
         highlightMap = new HashMap<>();  // 这里防止空指针 后面还会重新初始化
+
+        loadLanguageSupportComponent();
 
         /**
          * **自定义 TableModel，确保 ID 列按数值大小排序**
@@ -195,7 +261,7 @@ public class MainUI {
         }
 
         // 创建左边表格
-        String[] originRequestItemTableColumnName = {"#", "Method", "Host", "Path", "返回包长度", "状态码"};
+        String[] originRequestItemTableColumnName = {"#", "Method", "Host", "Path", "Length", "Status"};
         SortedTableModel originRequestItemTableModel = new SortedTableModel(originRequestItemTableColumnName, 0);
         originRequestItemTable = new JTable(originRequestItemTableModel);
         // 设置列默认宽度
@@ -210,7 +276,7 @@ public class MainUI {
 
 
         // 创建右边表格
-        String[] fuzzRequestItemTableColumnName = {"Param", "Payload", "返回包长度", "返回包变化", "状态码"};
+        String[] fuzzRequestItemTableColumnName = {"Param", "Payload", "Length", "Change", "Status"};
         DefaultTableModel fuzzRequestItemTableModel = new DefaultTableModel(fuzzRequestItemTableColumnName, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -244,7 +310,7 @@ public class MainUI {
         // 设置复选框默认勾选状态 居中放置
         BoxLayout turnOnLayout = new BoxLayout(turnOnPanel, BoxLayout.X_AXIS);
         turnOnPanel.setLayout(turnOnLayout);
-        turnOnCheckBox.setSelected(true);
+        turnOnCheckBox.setSelected(UserConfig.TURN_ON);
         turnOnPanel.add(Box.createHorizontalStrut(100));
         turnOnPanel.add(turnOnCheckBox);
         turnOnPanel.add(Box.createHorizontalGlue());
@@ -253,15 +319,24 @@ public class MainUI {
         BoxLayout listenProxyLayout = new BoxLayout(listenProxyPanel, BoxLayout.X_AXIS);
         listenProxyPanel.setLayout(listenProxyLayout);
         listenProxyPanel.add(Box.createHorizontalStrut(100));
+        listenProxyCheckBox.setSelected(UserConfig.LISTEN_PROXY);
         listenProxyPanel.add(listenProxyCheckBox);
         listenProxyPanel.add(Box.createHorizontalGlue());
         listenProxyPanel.setMaximumSize(new Dimension(20000, 22));
         BoxLayout listenRepeterLayout = new BoxLayout(listenRepeterPanel, BoxLayout.X_AXIS);
         listenRepeterPanel.setLayout(listenRepeterLayout);
         listenRepeterPanel.add(Box.createHorizontalStrut(100));
+        listenRepeterCheckBox.setSelected(UserConfig.LISTEN_REPETER);
         listenRepeterPanel.add(listenRepeterCheckBox);
         listenRepeterPanel.add(Box.createHorizontalGlue());
         listenRepeterPanel.setMaximumSize(new Dimension(20000, 22));
+        // 切换语言
+        BoxLayout languageSupportPanelLayout = new BoxLayout(languageSupportPanel, BoxLayout.X_AXIS);
+        languageSupportPanel.setLayout(languageSupportPanelLayout);
+        languageSupportPanel.add(Box.createHorizontalStrut(100));
+        languageSupportPanel.add(languageSupportComboBox);
+        languageSupportPanel.add(Box.createHorizontalStrut(105));
+        languageSupportPanel.setMaximumSize(new Dimension(20000, 22));
         // 清空请求列表
         BoxLayout cleanRequestListLayout = new BoxLayout(cleanRequestListPanel, BoxLayout.X_AXIS);
         cleanRequestListPanel.setLayout(cleanRequestListLayout);
@@ -275,9 +350,17 @@ public class MainUI {
         BoxLayout domainOperateLayout = new BoxLayout(domainOperatePanel, BoxLayout.Y_AXIS);
         domainMainPanel.setLayout(domainMainLayout);
         domainOperatePanel.setLayout(domainOperateLayout);
-        domainOperatePanel.add(blackButton, Component.CENTER_ALIGNMENT);
+        // 初始化黑白名单勾选情况
+        blackOrWhiteGroup.add(blackListRadioButton);
+        blackOrWhiteGroup.add(whiteListRadioButton);
+        blackListRadioButton.setSelected(UserConfig.BLACK_OR_WHITE_CHOOSE);
+        whiteListRadioButton.setSelected(!UserConfig.BLACK_OR_WHITE_CHOOSE);
+        // 初始化包含子域名勾选情况
+        includeSubDomainCheckBox.setSelected(UserConfig.INCLUDE_SUBDOMAIN);
+        // 向面板中添加各个组件
+        domainOperatePanel.add(blackListRadioButton, Component.CENTER_ALIGNMENT);
         domainOperatePanel.add(Box.createVerticalStrut(5));
-        domainOperatePanel.add(whiteButton, Component.CENTER_ALIGNMENT);
+        domainOperatePanel.add(whiteListRadioButton, Component.CENTER_ALIGNMENT);
         domainOperatePanel.add(Box.createVerticalStrut(5));
         domainOperatePanel.add(addDomainButton, Component.CENTER_ALIGNMENT);
         domainOperatePanel.add(Box.createVerticalStrut(5));
@@ -303,7 +386,6 @@ public class MainUI {
         domainTable.setDefaultEditor(Object.class, null);
         // 创建表格滚动面板
         JScrollPane domainTableScrollPane = new JScrollPane(domainTable);
-        domainTableScrollPane.setMaximumSize(new Dimension(150, 2000));
         domainMainPanel.add(Box.createHorizontalStrut(5));
         domainMainPanel.add(domainTableScrollPane);
         domainMainPanel.add(Box.createHorizontalStrut(5));
@@ -313,7 +395,15 @@ public class MainUI {
         BoxLayout payloadOperateLayout = new BoxLayout(payloadOperatePanel, BoxLayout.Y_AXIS);
         payloadMainPanel.setLayout(payloadMainLayout);
         payloadOperatePanel.setLayout(payloadOperateLayout);
-
+        // 根据此时payloadlist中是否存在置空参数判断是否勾选
+        if (PAYLOAD_LIST.size() != 0 && PAYLOAD_LIST.get(0).equals("")) {
+            emptyParamCheckBox.setSelected(true);
+        }
+        // 设置追加模式勾选情况
+        appendModCheckBox.setSelected(UserConfig.APPEND_MOD);
+        // 设置urlencode勾选情况
+        paramURLEncodeCheckBox.setSelected(UserConfig.PARAM_URL_ENCODE);
+        // payload用户操作部分添加组件
         payloadOperatePanel.add(addPayloadButton, Component.CENTER_ALIGNMENT);
         payloadOperatePanel.add(Box.createVerticalStrut(10));
         payloadOperatePanel.add(editPayloadButton, Component.CENTER_ALIGNMENT);
@@ -336,17 +426,18 @@ public class MainUI {
             }
         };
         payloadTable = new JTable(payloadModel);
-        getPayloadCache();
         // 支持多行选中
         payloadTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         // 禁止表格编辑
         payloadTable.setDefaultEditor(Object.class, null);
         // 创建表格滚动面板
         JScrollPane payloadTableScrollPane = new JScrollPane(payloadTable);
-        payloadTableScrollPane.setMaximumSize(new Dimension(150, 2000));
+        // 添加滚动面板
         payloadMainPanel.add(Box.createHorizontalStrut(11));
-        payloadMainPanel.add(payloadTableScrollPane);
+        payloadMainPanel.add(payloadTableScrollPane, Component.CENTER_ALIGNMENT);
         payloadMainPanel.add(Box.createHorizontalStrut(5));
+        // 初始化配置文件中的payload
+        Util.flushConfigTable("payload", payloadTable);
 
 
         // Auth Header配置部分绘制
@@ -355,6 +446,8 @@ public class MainUI {
         BoxLayout authHeaderOperateLayout = new BoxLayout(authHeaderOperatePanel, BoxLayout.Y_AXIS);
         authHeaderMainPanel.setLayout(authHeaderMainLayout);
         authHeaderOperatePanel.setLayout(authHeaderOperateLayout);
+        // 设置未授权访问勾选情况
+        unauthCheckBox.setSelected(UserConfig.UNAUTH);
         authHeaderOperatePanel.add(addAuthHeaderButton, Component.CENTER_ALIGNMENT);
         authHeaderOperatePanel.add(Box.createVerticalStrut(10));
         authHeaderOperatePanel.add(editAuthHeaderButton, Component.CENTER_ALIGNMENT);
@@ -381,7 +474,6 @@ public class MainUI {
         authHeaderTable.getColumnModel().getColumn(0).setPreferredWidth(10);
         // 创建表格滚动面板
         JScrollPane authHeaderTableScrollPane = new JScrollPane(authHeaderTable);
-        authHeaderTableScrollPane.setMaximumSize(new Dimension(150, 2000));
         authHeaderMainPanel.add(Box.createHorizontalStrut(5));
         authHeaderMainPanel.add(authHeaderTableScrollPane);
         authHeaderMainPanel.add(Box.createHorizontalStrut(5));
@@ -396,6 +488,8 @@ public class MainUI {
         leftPanel.add(listenProxyPanel);
         leftPanel.add(Box.createVerticalStrut(5));
         leftPanel.add(listenRepeterPanel);
+        leftPanel.add(Box.createVerticalStrut(5));
+        leftPanel.add(languageSupportPanel);
         leftPanel.add(Box.createVerticalStrut(5));
         leftPanel.add(cleanRequestListPanel);
         leftPanel.add(Box.createVerticalStrut(5));
@@ -421,10 +515,6 @@ public class MainUI {
         BoxLayout rightTopLayout = new BoxLayout(rightTopPanel, BoxLayout.Y_AXIS);
         rightTopPanel.setLayout(rightTopLayout);
         // 搜索框绘制
-        String[] searchScopeOptions = {"request", "response"};
-        searchScopeComboBox = new JComboBox<>(searchScopeOptions);
-        searchScopeComboBox.setSelectedItem("request");
-        UserConfig.SEARCH_SCOPE = SearchScope.REQUEST;
         BoxLayout searchPanelLayout = new BoxLayout(searchPanel, BoxLayout.X_AXIS);
         searchPanel.setLayout(searchPanelLayout);
         searchPanel.add(Box.createHorizontalStrut(2));
@@ -509,15 +599,16 @@ public class MainUI {
 
         ActionListener listener = e -> {
             JRadioButton selected = (JRadioButton)e.getSource();
-            if(selected == blackButton) {
-                BLACK_OR_WHITE_CHOOSE = Boolean.TRUE;
-            } else if(selected == whiteButton){
-                BLACK_OR_WHITE_CHOOSE = Boolean.FALSE;
+            if(selected == blackListRadioButton) {
+                UserConfig.BLACK_OR_WHITE_CHOOSE = Boolean.TRUE;
+            } else if(selected == whiteListRadioButton){
+                UserConfig.BLACK_OR_WHITE_CHOOSE = Boolean.FALSE;
             }
+            YamlUtil.exportToYaml();
         };
 
-        blackButton.addActionListener(listener);
-        whiteButton.addActionListener(listener);
+        blackListRadioButton.addActionListener(listener);
+        whiteListRadioButton.addActionListener(listener);
 
 
         // 设置启用插件复选框监听器
@@ -529,6 +620,7 @@ public class MainUI {
                 } else if (e.getStateChange() == ItemEvent.DESELECTED) {
                     UserConfig.TURN_ON = Boolean.FALSE;
                 }
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -542,6 +634,7 @@ public class MainUI {
                 } else if (e.getStateChange() == ItemEvent.DESELECTED) {
                     UserConfig.LISTEN_PROXY = Boolean.FALSE;
                 }
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -555,6 +648,7 @@ public class MainUI {
                 } else if (e.getStateChange() == ItemEvent.DESELECTED) {
                     UserConfig.LISTEN_REPETER = Boolean.FALSE;
                 }
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -563,8 +657,8 @@ public class MainUI {
         cleanRequestItemButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Data.ORIGIN_REQUEST_TABLE_DATA.clear();
-                Data.NEW_REQUEST_TO_BE_SENT_DATA.clear();
+                ORIGIN_REQUEST_TABLE_DATA.clear();
+                NEW_REQUEST_TO_BE_SENT_DATA.clear();
                 originRequestItemTableModel.setRowCount(0);
                 fuzzRequestItemTableModel.setRowCount(0);
 
@@ -649,8 +743,22 @@ public class MainUI {
         removePayloadButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Util.removeConfigData("payload", payloadTable.getSelectedRows());
+                int[] rows = payloadTable.getSelectedRows();
+                // 如果移除的payload包含参数置空 则同时取消勾选
+                if (rows[0] == 0 && PAYLOAD_LIST.get(0).equals("")) {
+                    emptyParamCheckBox.setSelected(false);
+
+                    // 空值会在触发checkbox事件时移除 去掉第一个空值元素
+                    int[] tmp = new int[rows.length - 1];
+                    for (int i = 1; i < rows.length; i++) {
+                        tmp[i - 1] = rows[i] - 1;
+                    }
+                    rows = tmp;
+                }
+                Util.removeConfigData("payload", rows);
                 Util.flushConfigTable("payload", payloadTable);
+                YamlUtil.exportToYaml();
+
             }
         });
 
@@ -660,6 +768,7 @@ public class MainUI {
             public void actionPerformed(ActionEvent e) {
                 Util.removeConfigData("header", authHeaderTable.getSelectedRows());
                 Util.flushConfigTable("header", authHeaderTable);
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -672,6 +781,7 @@ public class MainUI {
                 } else if (e.getStateChange() == ItemEvent.DESELECTED) {
                     UserConfig.APPEND_MOD = Boolean.FALSE;
                 }
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -686,7 +796,7 @@ public class MainUI {
                 }
 
                 Util.flushConfigTable("payload", payloadTable);
-
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -698,6 +808,7 @@ public class MainUI {
                 } else if (e.getStateChange() == ItemEvent.DESELECTED) {
                     UserConfig.PARAM_URL_ENCODE = Boolean.FALSE;
                 }
+                YamlUtil.exportToYaml();
             }
         }));
 
@@ -710,6 +821,7 @@ public class MainUI {
                 } else if (e.getStateChange() == ItemEvent.DESELECTED) {
                     UserConfig.INCLUDE_SUBDOMAIN = Boolean.FALSE;
                 }
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -722,6 +834,7 @@ public class MainUI {
                 } else if (e.getStateChange() == ItemEvent.DESELECTED) {
                     UserConfig.UNAUTH = Boolean.FALSE;
                 }
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -737,6 +850,27 @@ public class MainUI {
                 } else if (SearchScope.RESPONSE.scopeName().equals(selectedOption)) {
                     UserConfig.SEARCH_SCOPE = SearchScope.RESPONSE;
                 }
+            }
+        });
+
+        // 查找作用域下拉框监听器
+        languageSupportComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 获取用户选择
+                String selectedOption = (String) languageSupportComboBox.getSelectedItem();
+                if (Language.SIMPLIFIED_CHINESE.language().equals(selectedOption)) {
+                    UserConfig.LANGUAGE = Language.SIMPLIFIED_CHINESE;
+                    bundle = ResourceBundle.getBundle("lang", new Locale("zh", "CN"));
+                } else if (Language.ENGLISH.language().equals(selectedOption)) {
+                    UserConfig.LANGUAGE = Language.ENGLISH;
+                    bundle = ResourceBundle.getBundle("lang", new Locale("en", "US"));
+                }
+
+                // 加载多语言支持组件
+                loadLanguageSupportComponent();
+                // 更新本地配置文件
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -779,7 +913,7 @@ public class MainUI {
                 String path = (String) originRequestItemTableModel.getValueAt(originRow, 3);
                 OriginRequestItem tempItem = new OriginRequestItem(id, method, host, path, null, null);
 
-                for (OriginRequestItem item : Data.ORIGIN_REQUEST_TABLE_DATA.values()) {
+                for (OriginRequestItem item : ORIGIN_REQUEST_TABLE_DATA.values()) {
                     if (item.equals(tempItem) && item.getId().equals(id)) {
                         if (fuzzRow < item.getFuzzRequestArrayList().size()) {
                             FuzzRequestItem fuzzItem = item.getFuzzRequestArrayList().get(fuzzRow);
@@ -805,7 +939,7 @@ public class MainUI {
                 String pathText = (String) originRequestItemTableModel.getValueAt(row, 3);
                 OriginRequestItem tempItem = new OriginRequestItem(id, methodText, hostText, pathText, null, null);
 
-                for (OriginRequestItem item : Data.ORIGIN_REQUEST_TABLE_DATA.values()) {
+                for (OriginRequestItem item : ORIGIN_REQUEST_TABLE_DATA.values()) {
                     if (item.equals(tempItem) && item.getId().equals(id)) {
                         requestEditor.setRequest(item.getOriginRequest());
                         responseEditor.setResponse(item.getOriginResponse());
@@ -839,7 +973,7 @@ public class MainUI {
                     String pathText = (String) originRequestItemTableModel.getValueAt(row, 3);
                     OriginRequestItem tempItem = new OriginRequestItem(id, methodText, hostText, pathText, null, null);
 
-                    for (Map.Entry<Integer, OriginRequestItem> entry : Data.ORIGIN_REQUEST_TABLE_DATA.entrySet()) {
+                    for (Map.Entry<Integer, OriginRequestItem> entry : ORIGIN_REQUEST_TABLE_DATA.entrySet()) {
                         OriginRequestItem item = entry.getValue();
                         if (item.equals(tempItem) && item.getId().equals(id)) {
                             requestEditor.setRequest(item.getOriginRequest());
@@ -868,11 +1002,11 @@ public class MainUI {
     private void showAddDataDialog(String type) {
         TitledBorder titledBorder = null;
         if (type.equals("domain")) {
-            titledBorder = BorderFactory.createTitledBorder("添加域名 每行一个");
+            titledBorder = BorderFactory.createTitledBorder(bundle.getString("addDomainTitledBorder.text"));
         } else if (type.equals("payload")) {
-            titledBorder = BorderFactory.createTitledBorder("添加Payload 每行一个");
+            titledBorder = BorderFactory.createTitledBorder(bundle.getString("addPayloadTitledBorder.text"));
         } else if (type.equals("header")) {
-            titledBorder = BorderFactory.createTitledBorder("添加Header 每行一个");
+            titledBorder = BorderFactory.createTitledBorder(bundle.getString("addHeaderTitledBorder.text"));
         }
 
         JTextArea userInputTextArea = new JTextArea();
@@ -882,11 +1016,11 @@ public class MainUI {
 
         int option = 0;
         if (type.equals("domain")) {
-            option = JOptionPane.showConfirmDialog(null, scrollPane, "添加域名", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            option = JOptionPane.showConfirmDialog(null, scrollPane, bundle.getString("addDomainTitle.text"), JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         } else if (type.equals("payload")) {
-            option = JOptionPane.showConfirmDialog(null, scrollPane, "添加Payload", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            option = JOptionPane.showConfirmDialog(null, scrollPane, bundle.getString("addPayloadTitle.text"), JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         } else if (type.equals("header")) {
-            option = JOptionPane.showConfirmDialog(null, scrollPane, "添加AuthHeader", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            option = JOptionPane.showConfirmDialog(null, scrollPane, bundle.getString("addAuthHeaderTitle.text"), JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         }
 
 
@@ -899,6 +1033,7 @@ public class MainUI {
                 Util.flushConfigTable(type, domainTable);
             } else if (type.equals("payload")) {
                 Util.flushConfigTable(type, payloadTable);
+                YamlUtil.exportToYaml();
             } else if (type.equals("header")) {
                 Util.flushConfigTable(type, authHeaderTable);
             }
@@ -907,6 +1042,7 @@ public class MainUI {
 
     private void showEditDataDialog(String type, int row) {
         JTextField dataTextField = new JTextField();
+        dataTextField.setPreferredSize(new Dimension(350, 25));
 
         if (type.equals("domain")) {
             dataTextField.setText((String) domainTable.getModel().getValueAt(row, 0));
@@ -918,11 +1054,11 @@ public class MainUI {
 
         int option = 0;
         if (type.equals("domain")) {
-            option = JOptionPane.showConfirmDialog(null, dataTextField, "编辑域名", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            option = JOptionPane.showConfirmDialog(null, dataTextField, bundle.getString("editDomainTitle.text"), JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         } else if (type.equals("payload")) {
-            option = JOptionPane.showConfirmDialog(null, dataTextField, "编辑Payload", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            option = JOptionPane.showConfirmDialog(null, dataTextField, bundle.getString("editPayloadTitle.text"), JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         } else if (type.equals("header")) {
-            option = JOptionPane.showConfirmDialog(null, dataTextField, "编辑AuthHeader", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            option = JOptionPane.showConfirmDialog(null, dataTextField, bundle.getString("editAuthHeaderTitle.text"), JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         }
 
 
@@ -935,6 +1071,7 @@ public class MainUI {
                 Util.flushConfigTable(type, domainTable);
             } else if (type.equals("payload")) {
                 Util.flushConfigTable(type, payloadTable);
+                YamlUtil.exportToYaml();
             } else if (type.equals("header")) {
                 Util.flushConfigTable(type, authHeaderTable);
             }
@@ -958,7 +1095,7 @@ public class MainUI {
             OriginRequestItem selectOriginRequestItem = new OriginRequestItem(id, method, host, path, null, null);
 
             // 遍历data中的数据找到对应的originRequest 检查内容
-            for (Map.Entry<Integer, OriginRequestItem> originRequestItemEntry : Data.ORIGIN_REQUEST_TABLE_DATA.entrySet()) {
+            for (Map.Entry<Integer, OriginRequestItem> originRequestItemEntry : ORIGIN_REQUEST_TABLE_DATA.entrySet()) {
                 OriginRequestItem originRequestItem = originRequestItemEntry.getValue();
                 if (originRequestItem.equals(selectOriginRequestItem) && originRequestItem.getId().equals(id)) {
                     String originRequestString = originRequestItem.getOriginRequest().toString();
@@ -1005,14 +1142,19 @@ public class MainUI {
         }
     }
 
-    // 初始化Payload缓存
-    private void getPayloadCache(){
-        List<String> content = null;
-        content = Util.handleAutoFuzzPayload();
-        if (!content.isEmpty()) {
-           PAYLOAD_LIST.addAll(content);
-            Util.flushConfigTable("payload", payloadTable);
+
+    // 初始化多语言支持组件
+    private void loadLanguageSupportComponent() {
+        for (String componentName : langSupportComponent) {
+            try {
+                Field componentField = MainUI.class.getDeclaredField(componentName);
+                componentField.setAccessible(true);
+                Object component = componentField.get(this);
+                Method setTextMethod = component.getClass().getMethod("setText", String.class);
+                setTextMethod.invoke(component, bundle.getString(componentName + ".text"));
+            } catch (Exception e) {
+                Main.LOG.logToError("[ERROR] 加载多语言支持组件出现异常.");
+            }
         }
     }
-
 }

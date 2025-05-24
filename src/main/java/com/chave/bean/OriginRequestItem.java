@@ -1,4 +1,4 @@
-package com.chave.pojo;
+package com.chave.bean;
 
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.message.responses.HttpResponse;

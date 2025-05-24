@@ -10,8 +10,5 @@
         <module name="AutoFuzz" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="AutoFuzz" target="17" />
-    </bytecodeTargetLevel>
   </component>
 </project>

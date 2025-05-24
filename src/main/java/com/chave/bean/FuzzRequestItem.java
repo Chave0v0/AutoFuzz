@@ -1,12 +1,8 @@
-package com.chave.pojo;
+package com.chave.bean;
 
 import burp.api.montoya.http.message.HttpRequestResponse;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.awt.*;
-import java.util.Objects;
 
 @Data
 @NoArgsConstructor

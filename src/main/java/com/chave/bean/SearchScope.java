@@ -1,4 +1,4 @@
-package com.chave.pojo;
+package com.chave.bean;
 
 public enum SearchScope {
     REQUEST("request"),

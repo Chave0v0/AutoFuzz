@@ -2,18 +2,15 @@ package com.chave.handler;
 
 import burp.api.montoya.core.ToolType;
 import burp.api.montoya.http.handler.*;
-import burp.api.montoya.http.message.HttpRequestResponse;
-import burp.api.montoya.http.message.requests.HttpRequest;
 import com.chave.Main;
 import com.chave.config.UserConfig;
 import com.chave.menu.AutoFuzzMenu;
-import com.chave.pojo.Data;
-import com.chave.pojo.OriginRequestItem;
+import com.chave.bean.Data;
+import com.chave.bean.OriginRequestItem;
 import com.chave.service.AutoFuzzService;
 import com.chave.utils.Util;
 
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -33,7 +30,7 @@ public class AutoFuzzHandler implements HttpHandler {
                 // 先过滤域名
                 if (Data.DOMAIN_LIST.size() > 0){
                     for (String domain : Data.DOMAIN_LIST) {
-                        if(matchesDomain(host, domain, Data.BLACK_OR_WHITE_CHOOSE)){
+                        if(matchesDomain(host, domain, UserConfig.BLACK_OR_WHITE_CHOOSE)){
                             // 预检查
                             if (fuzzPreCheck(requestToBeSent, host)) {
                                 autoFuzzService.preFuzz(requestToBeSent);
@@ -41,7 +38,7 @@ public class AutoFuzzHandler implements HttpHandler {
                             break;
                         }
                     }
-                }else if(Data.BLACK_OR_WHITE_CHOOSE){
+                }else if(UserConfig.BLACK_OR_WHITE_CHOOSE){
                     if (fuzzPreCheck(requestToBeSent, host)) {
                         autoFuzzService.preFuzz(requestToBeSent);
                     }
