@@ -1,6 +1,5 @@
 package com.chave.menu;
 
-import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
 import burp.api.montoya.ui.contextmenu.ContextMenuItemsProvider;
@@ -8,8 +7,6 @@ import com.chave.Main;
 import com.chave.service.AutoFuzzService;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -41,7 +38,7 @@ public class AutoFuzzMenu implements ContextMenuItemsProvider {
                     executorService.shutdown();
 
                 } catch (Exception ex) {
-                    Main.LOG.logToError("右键主动fuzz出现异常: " + ex.getMessage());
+                    Main.LOG.logToError("[ERROR] 右键主动fuzz出现异常: " + ex.getMessage());
                 }
             });
 

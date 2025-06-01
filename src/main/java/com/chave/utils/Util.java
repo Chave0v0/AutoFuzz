@@ -168,17 +168,25 @@ public class Util {
                 targetList.set(row, userInput);
             }
         } else if (type.equals("header")) {
-            LinkedHashMap<String, String> headerMap = Data.HEADER_MAP;
+            LinkedHashMap<String, String> headerMap = new LinkedHashMap<>();
+            int count = 0;
 
             int index = userInput.indexOf(":");
             if (index != -1) {  // 确保是合法的header的key-value
                 String header = userInput.substring(0, index);  // 左边部分
-                String value = userInput.substring(index + 1); // 右边部分（去掉冒号）
-                if (headerMap.containsKey(header) && header != null && value != null) {
-                    if (header.trim().length() != 0 && value.trim().length() != 0) {
-                        headerMap.put(header.trim(), value.trim());
+                String value = userInput.substring(index + 1).trim(); // 右边部分（去掉冒号）
+
+                // 创建一个新的linkedhashmap用于修改
+                for (Map.Entry<String, String> headerEntry : Data.HEADER_MAP.entrySet()) {
+                    if (count == row) {
+                        headerMap.put(header, value);
+                    } else {
+                        headerMap.put(headerEntry.getKey(), headerEntry.getValue());
                     }
+                    count++;
                 }
+
+                Data.HEADER_MAP = headerMap;
             }
         }
     }

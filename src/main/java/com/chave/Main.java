@@ -20,8 +20,9 @@ public class Main implements BurpExtension {
 
         // banner info
         API.extension().setName("AutoFuzz");
-        LOG.logToOutput("AutoFuzz v1.4");
-        LOG.logToOutput("Author: Chave, z-bool, Y5neKO");
+        LOG.logToOutput("AutoFuzz v1.5");
+        LOG.logToOutput("Author: Chave");
+        LOG.logToOutput("Contributors: z-bool, Y5neKO, d1sbb");
         LOG.logToOutput("Github: https://github.com/Chave0v0/AutoFuzz");
 
         // 加载配置文件
@@ -31,11 +32,7 @@ public class Main implements BurpExtension {
 
 
         // 初始化ui
-        try {
-            MainUI = new MainUI();
-        } catch (Exception ex) {
-            LOG.logToError("[ERROR] 初始化UI出现异常.");
-        }
+        MainUI = new MainUI();
 
         API.userInterface().registerSuiteTab("AutoFuzz", MainUI.getMainSplitPane());
         API.http().registerHttpHandler(new AutoFuzzHandler());
