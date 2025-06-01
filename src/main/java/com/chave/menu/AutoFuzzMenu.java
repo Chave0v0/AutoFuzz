@@ -24,33 +24,29 @@ public class AutoFuzzMenu implements ContextMenuItemsProvider {
 
         // 定义菜单
         ArrayList<Component> menus = new ArrayList<>();
-        JMenuItem sentToAutoFuzzMenuItem = new JMenuItem("Send to AutoFuzz");
+        //@d1sbb修改，修复get()可能为空时异常
+        event.messageEditorRequestResponse().ifPresent(editorReqResp -> {
+            HttpRequest request = editorReqResp.requestResponse().request();
 
-        HttpRequestResponse httpRequestResponse = event.messageEditorRequestResponse().get().requestResponse();
-        HttpRequest request = httpRequestResponse.request();
-
-        sentToAutoFuzzMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+            JMenuItem sentToAutoFuzzMenuItem = new JMenuItem("Send to AutoFuzz");
+            sentToAutoFuzzMenuItem.addActionListener(e -> {
                 try {
                     autoFuzzService.preFuzz(request);
 
                     ExecutorService executorService = Executors.newSingleThreadExecutor();
-                    executorService.submit(new Runnable() {
-                        @Override
-                        public void run() {
-                            Main.API.http().sendRequest(request);  // 发送一个请求用于触发response handler
-                        }
+                    executorService.submit(() -> {
+                        Main.API.http().sendRequest(request);
                     });
-                    executorService.shutdownNow();
+                    //修复第二次发送同一个请求路径会失败，提示interrupted 的情况
+                    executorService.shutdown();
 
-                } catch (Exception exception) {
-                    Main.LOG.logToError("右键主动fuzz出现异常" + exception.getCause());
+                } catch (Exception ex) {
+                    Main.LOG.logToError("右键主动fuzz出现异常: " + ex.getMessage());
                 }
-            }
-        });
+            });
 
-        menus.add(sentToAutoFuzzMenuItem);
+            menus.add(sentToAutoFuzzMenuItem);
+        });
         return menus;
     }
 }

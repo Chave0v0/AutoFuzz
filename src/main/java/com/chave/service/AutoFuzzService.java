@@ -1,6 +1,8 @@
 package com.chave.service;
 
+import burp.api.montoya.core.ByteArray;
 import burp.api.montoya.http.handler.HttpRequestToBeSent;
+import burp.api.montoya.http.handler.TimingData;
 import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.params.HttpParameter;
 import burp.api.montoya.http.message.params.HttpParameterType;
@@ -22,14 +24,15 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class AutoFuzzService {
 
     // 做一些准备工作  解析参数  准备待发送请求列表  初始化表格数据
     public synchronized void preFuzz(HttpRequest request) throws UnsupportedEncodingException, MalformedURLException {
-        // 如果没有参数 直接返回
-        if (!request.hasParameters()) {
+        // 如果没有参数 直接返回 //@d1sbb修改，如果Auth Header没有设置，则不进行fuzz
+        if (!request.hasParameters() && Data.HEADER_MAP.isEmpty()) {
             return;
         }
 
@@ -69,7 +72,7 @@ public class AutoFuzzService {
                         newRequest = newRequest.withRemovedHeader(entry.getKey());
                     }
                     newRequestToBeSentList.add(newRequest);
-                    originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem("*HEADER*", "*unauth*", null, null, null, originRequestItem));
+                    originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem("*HEADER*", "*unauth*", null, null, null, null, originRequestItem));
                 }
 
                 HttpRequest newRequest = request;
@@ -77,7 +80,7 @@ public class AutoFuzzService {
                     newRequest = newRequest.withHeader(entry.getKey(), entry.getValue());
                 }
                 newRequestToBeSentList.add(newRequest);
-                originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem("*HEADER*", "*auth*", null, null, null, originRequestItem));
+                originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem("*HEADER*", "*auth*", null, null, null, null, originRequestItem));
             }
 
             // 获取所有请求参数
@@ -105,7 +108,7 @@ public class AutoFuzzService {
                     }
 
                     newRequestToBeSentList.add(newRequest);  // 添加待发送请求
-                    originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem(parameter.name(), payload, null, null, null, originRequestItem));  // 添加表格数据
+                    originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem(parameter.name(), payload, null, null, null, null, originRequestItem));  // 添加表格数据
                 }
             }
 
@@ -118,7 +121,7 @@ public class AutoFuzzService {
                         newRequest = newRequest.withRemovedHeader(entry.getKey());
                     }
                     newRequestToBeSentList.add(newRequest);
-                    originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem("*HEADER*", "*unauth*", null, null, null, originRequestItem));
+                    originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem("*HEADER*", "*unauth*", null, null, null, null, originRequestItem));
                 }
 
                 HttpRequest newRequest = request;
@@ -126,7 +129,7 @@ public class AutoFuzzService {
                     newRequest = newRequest.withHeader(entry.getKey(), entry.getValue());
                 }
                 newRequestToBeSentList.add(newRequest);
-                originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem("*HEADER*", "*auth*", null, null, null, originRequestItem));
+                originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem("*HEADER*", "*auth*", null, null, null, null, originRequestItem));
             }
 
             // 先获取普通参数
@@ -156,12 +159,13 @@ public class AutoFuzzService {
                     }
 
                     newRequestToBeSentList.add(newRequest);  // 添加待发送请求
-                    originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem(parameter.name(), payload, null, null, null, originRequestItem));  // 添加表格数据
+                    originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem(parameter.name(), payload, null, null, null, null, originRequestItem));  // 添加表格数据
                 }
             }
 
-            // 获取json字符串
-            String json = request.body().toString();
+            // @d1sbb修改，修复中文乱码，获取json字符串
+            byte[] bodyBytes = request.body().getBytes();
+            String json = new String(bodyBytes, StandardCharsets.UTF_8);
 
             // 这里开始处理json
             Object jsonObject = null;
@@ -185,10 +189,11 @@ public class AutoFuzzService {
                         for (String payload : Data.PAYLOAD_LIST) {
                             jsonObject = JSON.parse(json);  // 重新赋值一个未修改过的json
                             String newJsonBody = updateJsonValue(integer, payload, jsonObject, result).get("json").toString();  // 生成新的payload
-
-                            HttpRequest newRequest = request.withBody(newJsonBody);
+                            //@d1sbb修改，修复json请求包中如果有中文乱码的情况
+                            ByteArray utf8Body = ByteArray.byteArray(newJsonBody.getBytes(StandardCharsets.UTF_8));
+                            HttpRequest newRequest = request.withBody(utf8Body);
                             newRequestToBeSentList.add(newRequest);  // 添加到待发送请求
-                            originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem((String) resultKey.get(integer), payload, null, null, null, originRequestItem));  // 添加表格数据
+                            originRequestItem.getFuzzRequestArrayList().add(new FuzzRequestItem((String) resultKey.get(integer), payload, null, null, null, null, originRequestItem));  // 添加表格数据
                         }
                     }
 
@@ -232,7 +237,19 @@ public class AutoFuzzService {
             fuzzRequestItem.setResponseLength(responseLength);
             fuzzRequestItem.setResponseLengthChange((lengthChange > 0 ? "+" + lengthChange : String.valueOf(lengthChange)));
             fuzzRequestItem.setResponseCode(httpRequestResponse.response().statusCode() + "");
-
+            // 获取返回包时间信息
+            Optional<TimingData> timingOpt = httpRequestResponse.timingData();
+            if (timingOpt.isPresent()) {
+                double timeInSeconds = timingOpt.get().timeBetweenRequestSentAndEndOfResponse().toMillis() / 1000.0;
+                // 如果时间大于2秒 则标记X
+                if (timeInSeconds > 2.0) {
+                    fuzzRequestItem.setResponseTime(String.format("%.3f ↑", timeInSeconds));
+                }else {
+                    fuzzRequestItem.setResponseTime(String.format("%.3f", timeInSeconds));
+                }
+            } else {
+                Main.LOG.logToError("未获取到 timingData");
+            }
             i++;
         }
 

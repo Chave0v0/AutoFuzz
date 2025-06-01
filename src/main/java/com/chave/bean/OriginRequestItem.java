@@ -3,9 +3,12 @@ package com.chave.bean;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.message.responses.HttpResponse;
 import lombok.Data;
+import lombok.ToString;
+
 import java.util.ArrayList;
 
 @Data
+@ToString(exclude = {"originRequest", "originResponse", "fuzzRequestArrayList"})//修复栈溢出'java.lang.StackOverflowError' 异常。 无法对 com.chave.bean.OriginRequestItem.toString() 求值
 public class OriginRequestItem {
     private Integer id;
     private String host;

@@ -276,7 +276,7 @@ public class MainUI {
 
 
         // 创建右边表格
-        String[] fuzzRequestItemTableColumnName = {"Param", "Payload", "Length", "Change", "Status"};
+        String[] fuzzRequestItemTableColumnName = {"Param", "Payload", "Length", "Change", "Status", "Time(s)"};
         DefaultTableModel fuzzRequestItemTableModel = new DefaultTableModel(fuzzRequestItemTableColumnName, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -389,6 +389,8 @@ public class MainUI {
         domainMainPanel.add(Box.createHorizontalStrut(5));
         domainMainPanel.add(domainTableScrollPane);
         domainMainPanel.add(Box.createHorizontalStrut(5));
+        // 初始化配置文件中的domain
+        Util.flushConfigTable("domain", domainTable);
         // payload配置部分绘制
         // 用户操作部分
         BoxLayout payloadMainLayout = new BoxLayout(payloadMainPanel, BoxLayout.X_AXIS);
@@ -457,7 +459,7 @@ public class MainUI {
         authHeaderOperatePanel.add(unauthCheckBox, Component.CENTER_ALIGNMENT);
         authHeaderMainPanel.add(Box.createHorizontalStrut(5));
         authHeaderMainPanel.add(authHeaderOperatePanel);
-        // 初始化payload表格
+        // 初始化header表格
         String[] authHeaderTableColumnName = {"Header", "Value"};
         DefaultTableModel authHeaderModel = new DefaultTableModel(authHeaderTableColumnName, 0) {
             @Override
@@ -477,6 +479,8 @@ public class MainUI {
         authHeaderMainPanel.add(Box.createHorizontalStrut(5));
         authHeaderMainPanel.add(authHeaderTableScrollPane);
         authHeaderMainPanel.add(Box.createHorizontalStrut(5));
+        // 初始化配置文件中的header
+        Util.flushConfigTable("header", authHeaderTable);
 
 
         // 左侧面板添加各个组件
@@ -579,7 +583,7 @@ public class MainUI {
                     try {
                         int originRequestSelectedRow = originRequestItemTable.getSelectedRows()[0];
 
-                        if (column == 0 || column == 1 || column == 2 || column == 3 || column == 4) {
+                        if (column == 0 || column == 1 || column == 2 || column == 3 || column == 4 || column == 5) {
                             ((DefaultTableCellRenderer) c).setHorizontalAlignment(SwingConstants.CENTER);
                         }
 
@@ -736,6 +740,7 @@ public class MainUI {
             public void actionPerformed(ActionEvent e) {
                 Util.removeConfigData("domain", domainTable.getSelectedRows());
                 Util.flushConfigTable("domain", domainTable);
+                YamlUtil.exportToYaml();
             }
         });
 
@@ -762,7 +767,7 @@ public class MainUI {
             }
         });
 
-        // 删除payload按钮监听器
+        // 删除header按钮监听器
         removeAuthHeaderButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -950,7 +955,7 @@ public class MainUI {
                             fuzzRequestItemTableModel.addRow(new Object[]{
                                     fuzzItem.getParam(), fuzzItem.getPayload(),
                                     fuzzItem.getResponseLength(), fuzzItem.getResponseLengthChange(),
-                                    fuzzItem.getResponseCode()
+                                    fuzzItem.getResponseCode(), fuzzItem.getResponseTime()
                             });
                         }
                         break;
@@ -987,7 +992,8 @@ public class MainUI {
                                         fuzzRequestItem.getPayload(),
                                         fuzzRequestItem.getResponseLength(),
                                         fuzzRequestItem.getResponseLengthChange(),
-                                        fuzzRequestItem.getResponseCode()
+                                        fuzzRequestItem.getResponseCode(),
+                                        fuzzRequestItem.getResponseTime()
                                 });
                             }
                             fuzzRequestItemTable.updateUI();
@@ -1031,11 +1037,13 @@ public class MainUI {
 
             if (type.equals("domain")) {
                 Util.flushConfigTable(type, domainTable);
+                YamlUtil.exportToYaml();
             } else if (type.equals("payload")) {
                 Util.flushConfigTable(type, payloadTable);
                 YamlUtil.exportToYaml();
             } else if (type.equals("header")) {
                 Util.flushConfigTable(type, authHeaderTable);
+                YamlUtil.exportToYaml();
             }
         }
     }
@@ -1069,11 +1077,13 @@ public class MainUI {
 
             if (type.equals("domain")) {
                 Util.flushConfigTable(type, domainTable);
+                YamlUtil.exportToYaml();
             } else if (type.equals("payload")) {
                 Util.flushConfigTable(type, payloadTable);
                 YamlUtil.exportToYaml();
             } else if (type.equals("header")) {
                 Util.flushConfigTable(type, authHeaderTable);
+                YamlUtil.exportToYaml();
             }
         }
     }

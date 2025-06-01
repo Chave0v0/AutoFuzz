@@ -55,6 +55,22 @@ public class YamlUtil {
                         Data.PAYLOAD_LIST.add((String) payloadmap.get("value"));
                     }
                 }
+                //@d1sbb修改，加载 domain
+                ArrayList<LinkedHashMap> domain = (ArrayList<LinkedHashMap>) map.get("domain");
+                if (domain != null) {
+                    for (LinkedHashMap domainMap : domain) {
+                        Data.DOMAIN_LIST.add((String) domainMap.get("value"));
+                    }
+                }
+                //@d1sbb修改，header
+                ArrayList<LinkedHashMap> header = (ArrayList<LinkedHashMap>) map.get("header");
+                if (header != null) {
+                    for (LinkedHashMap headerMap : header) {
+                        String key = (String) headerMap.get("key");
+                        String value = (String) headerMap.get("value");
+                        Data.HEADER_MAP.put(key, value);
+                    }
+                }
 
 
                 Main.LOG.logToOutput("[INFO] 已加载配置文件.");
@@ -117,10 +133,30 @@ public class YamlUtil {
                 payloadList.add(payloadMap);
             }
         }
-
-
+        ArrayList<LinkedHashMap<String, String>> domainList = null;
+        if (Data.DOMAIN_LIST.size() > 0) {
+            domainList = new ArrayList<>();
+            for (String domain : Data.DOMAIN_LIST) {
+                LinkedHashMap<String, String> domainMap = new LinkedHashMap<>();
+                domainMap.put("value", domain);
+                domainList.add(domainMap);
+            }
+        }
+        ArrayList<LinkedHashMap<String, String>> headerList = null;
+        if (Data.HEADER_MAP.size() > 0) {
+            headerList = new ArrayList<>();
+            for (Map.Entry<String, String> entry : Data.HEADER_MAP.entrySet()) {
+                LinkedHashMap<String, String> headerMap = new LinkedHashMap<>();
+                headerMap.put("key", entry.getKey());
+                headerMap.put("value", entry.getValue());
+                headerList.add(headerMap);
+            }
+        }
+        //@d1sbb修改，新增导出时domain、header配置
         yamlData.put("config", configMap);
         yamlData.put("payload", payloadList);
+        yamlData.put("domain", domainList);
+        yamlData.put("header", headerList);
 
         // 配置YAML选项（保持块格式）
         DumperOptions options = new DumperOptions();
