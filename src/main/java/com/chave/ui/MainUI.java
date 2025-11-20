@@ -37,7 +37,7 @@ public class MainUI {
     private JPanel leftPanel;
     private JPanel rightPanel;
     private JPanel rightTopPanel;
-    private JPanel rightBottomPanel;
+    private JSplitPane rightBottomPanel;
     private JPanel turnOnPanel;
     private JPanel domainOperatePanel;
     private JPanel domainMainPanel;
@@ -152,7 +152,7 @@ public class MainUI {
         leftPanel = new JPanel();
         rightPanel = new JPanel();
         rightTopPanel = new JPanel();
-        rightBottomPanel = new JPanel();
+        rightBottomPanel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         turnOnPanel = new JPanel();
         domainOperatePanel = new JPanel();
         domainMainPanel = new JPanel();
@@ -540,10 +540,9 @@ public class MainUI {
         rightTopPanel.add(Box.createVerticalStrut(2));
 
         // 创建request/response展示面板
-        BoxLayout rightBottomLayout = new BoxLayout(rightBottomPanel, BoxLayout.X_AXIS);
-        rightBottomPanel.setLayout(rightBottomLayout);
-        rightBottomPanel.add(requestEditor.uiComponent());
-        rightBottomPanel.add(responseEditor.uiComponent());
+        rightBottomPanel.setLeftComponent(requestEditor.uiComponent());
+        rightBottomPanel.setRightComponent(responseEditor.uiComponent());
+
 
         // 创建右侧分隔面板 上下分隔
         rightSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, rightTopPanel, rightBottomPanel);
